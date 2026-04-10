@@ -6,10 +6,12 @@ Implements:
 - Parabola left-side exit timing (三条抛物线模型)
 - Multi-channel exit evaluation
 - Exit Decision Committee framework
+- Dynamic liquidity discount model (credit-cycle sensitive)
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -386,3 +388,156 @@ class ExitDecisionCommittee:
         lines.append("=" * 60)
 
         return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic Liquidity Discount Model
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LiquidityDiscountResult:
+    base_discount_pct: float        # Fundamental illiquidity premium
+    cycle_adjustment_pct: float     # Credit / rate cycle adjustment
+    sfund_adjustment_pct: float     # S-fund market freeze adjustment
+    total_discount_pct: float       # Total recommended discount to apply
+    macro_regime: str               # Label for current macro regime
+    s_fund_market: str              # Label for S-fund market state
+    summary: str
+    warnings: list[str] = field(default_factory=list)
+
+
+class LiquidityDiscountModel:
+    """
+    动态流动性折价模型
+
+    Replaces the fixed 10-20% discount assumption with a cycle-aware function.
+    Discount is composed of:
+
+    1. Base illiquidity premium  — structural premium for private-market assets
+       (calibrated to S-fund transaction data: ~15% for VC, ~10% for PE)
+
+    2. Credit / rate cycle adjustment — in rate-hiking cycles, discount rates
+       rise and private-asset valuations compress further:
+       * Rate-cut cycle:  −5% adjustment (buyer leverage cheap → lower discount)
+       * Neutral:          0% adjustment
+       * Rate-hike cycle: +5% to +10% depending on pace
+
+    3. S-fund market activity adjustment — during S-fund market freezes
+       (fundraising ice age 募资冰河期), bid-ask spreads widen significantly:
+       * Active:    0%
+       * Cooling:  +5%
+       * Frozen:  +15%
+
+    Total discount = base + credit_adj + sfund_adj, clipped to [5%, 50%].
+
+    This ensures the committee model always uses a realistic market-clearing
+    price rather than optimistic "market dream rate" (市梦率) pricing.
+    """
+
+    # Base discounts by asset class / stage
+    BASE_DISCOUNTS = {
+        "angel": 0.30,   # highest illiquidity
+        "vc": 0.20,
+        "pe": 0.12,
+        "bse": 0.18,
+        "default": 0.15,
+    }
+
+    CREDIT_ADJUSTMENTS = {
+        "rate_cut": -0.05,
+        "neutral": 0.00,
+        "rate_hike_mild": 0.05,
+        "rate_hike_aggressive": 0.10,
+    }
+
+    SFUND_ADJUSTMENTS = {
+        "active": 0.00,
+        "cooling": 0.05,
+        "frozen": 0.15,
+    }
+
+    def calculate(
+        self,
+        *,
+        asset_stage: str = "default",       # "angel", "vc", "pe", "bse", "default"
+        credit_cycle: str = "neutral",       # "rate_cut", "neutral", "rate_hike_mild", "rate_hike_aggressive"
+        s_fund_market: str = "active",       # "active", "cooling", "frozen"
+        asset_quality: str = "average",      # "high", "average", "low" — quality premium/discount
+        years_to_fund_end: int = 3,          # Urgency factor
+    ) -> LiquidityDiscountResult:
+        """
+        Compute the dynamic liquidity discount for a private-market asset.
+
+        Parameters
+        ----------
+        asset_stage:         Investment stage of the underlying asset
+        credit_cycle:        Current macro credit / interest rate regime
+        s_fund_market:       State of the S-fund secondary market
+        asset_quality:       Subjective quality tier of the asset
+        years_to_fund_end:   Years until fund must wind down (urgency)
+        """
+        warnings: list[str] = []
+
+        base = self.BASE_DISCOUNTS.get(asset_stage, self.BASE_DISCOUNTS["default"])
+        credit_adj = self.CREDIT_ADJUSTMENTS.get(credit_cycle, 0.0)
+        sfund_adj = self.SFUND_ADJUSTMENTS.get(s_fund_market, 0.0)
+
+        # Quality adjustment: high-quality assets command narrower bid-ask spreads
+        quality_adj = {"high": -0.03, "average": 0.0, "low": 0.05}.get(asset_quality, 0.0)
+
+        # Urgency adjustment: fund nearing end increases seller desperation
+        urgency_adj = 0.0
+        if years_to_fund_end <= 1:
+            urgency_adj = 0.08
+            warnings.append("基金存续期仅剩1年以内，卖方被动性显著提高折价幅度。")
+        elif years_to_fund_end <= 2:
+            urgency_adj = 0.04
+            warnings.append("基金存续期仅剩2年，建议尽快启动退出谈判以控制折价区间。")
+
+        total = base + credit_adj + sfund_adj + quality_adj + urgency_adj
+        total = max(0.05, min(0.50, total))  # clip to [5%, 50%]
+
+        if s_fund_market == "frozen":
+            warnings.append(
+                "S基金市场处于冰河期，流动性极度匮乏，"
+                "建议优先考虑并购退出而非二级转让。"
+            )
+        if credit_cycle in ("rate_hike_mild", "rate_hike_aggressive"):
+            warnings.append(
+                f"加息周期（{credit_cycle}）下，买方融资成本上升，"
+                "私募资产折价幅度系统性扩大。"
+            )
+
+        regime_labels = {
+            "rate_cut": "降息/宽松周期",
+            "neutral": "中性利率环境",
+            "rate_hike_mild": "温和加息周期",
+            "rate_hike_aggressive": "激进加息周期",
+        }
+        sfund_labels = {
+            "active": "S基金市场活跃",
+            "cooling": "S基金市场降温",
+            "frozen": "S基金市场冰河期",
+        }
+
+        summary = (
+            f"动态流动性折价 = {total * 100:.1f}% | "
+            f"基础折价 {base * 100:.0f}% + "
+            f"信用周期调整 {credit_adj * 100:+.0f}% + "
+            f"S基金市场调整 {sfund_adj * 100:+.0f}% + "
+            f"资产质量调整 {quality_adj * 100:+.0f}% + "
+            f"紧迫度调整 {urgency_adj * 100:+.0f}%\n"
+            f"宏观环境: {regime_labels.get(credit_cycle, credit_cycle)} | "
+            f"{sfund_labels.get(s_fund_market, s_fund_market)}"
+        )
+
+        return LiquidityDiscountResult(
+            base_discount_pct=round(base * 100, 2),
+            cycle_adjustment_pct=round(credit_adj * 100, 2),
+            sfund_adjustment_pct=round(sfund_adj * 100, 2),
+            total_discount_pct=round(total * 100, 2),
+            macro_regime=regime_labels.get(credit_cycle, credit_cycle),
+            s_fund_market=sfund_labels.get(s_fund_market, s_fund_market),
+            summary=summary,
+            warnings=warnings,
+        )

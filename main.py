@@ -4,13 +4,19 @@
 Primary Market Investment Decision Model — CLI
 
 Usage:
-    python main.py angel   # Evaluate angel-stage investment
-    python main.py vc      # Evaluate VC-stage investment
-    python main.py pe      # Evaluate PE-stage investment
-    python main.py bse     # Evaluate BSE-targeting investment
-    python main.py gp      # Score a GP (LP due diligence)
-    python main.py exit    # Analyze exit timing
-    python main.py demo    # Run full demo with sample data
+    python main.py angel       # Evaluate angel-stage investment
+    python main.py vc          # Evaluate VC-stage investment
+    python main.py pe          # Evaluate PE-stage investment
+    python main.py bse         # Evaluate BSE-targeting investment
+    python main.py gp          # Score a GP (LP due diligence)
+    python main.py exit        # Analyze exit timing
+    python main.py montecarlo  # Monte Carlo probabilistic simulations
+    python main.py curves      # Mathematical curve fitting & exit signals
+    python main.py jcurve      # J-curve & fund cashflow model
+    python main.py liquidity   # Dynamic liquidity discount model
+    python main.py comps       # Comparable company valuation anchor
+    python main.py strip       # GP MOC unrealised value stripper
+    python main.py demo        # Run full demo with sample data
 """
 
 import sys
@@ -25,9 +31,24 @@ from src.investment_model import (
     ValuationAnalyzer,
     ExitAnalyzer,
     ExitDecisionCommittee,
+    LiquidityDiscountModel,
     GPScorecard,
     AssetAllocationAdvisor,
     InvestmentPhilosophyChecker,
+    MonteCarloEngine,
+    PortfolioSimulator,
+    LognormalParam,
+    NormalParam,
+    PoissonParam,
+    LogisticGrowthCurve,
+    GompertzCurve,
+    CapitalCycleCurve,
+    CapitalCyclePoint,
+    ExitSignalDetector,
+    FundCashflowModel,
+    CompsValuationAnchor,
+    CompanyComp,
+    UnrealisedValueStripper,
 )
 
 
@@ -313,9 +334,168 @@ def demo_philosophy() -> None:
         print(f"  💡 {r}")
 
 
+def demo_montecarlo() -> None:
+    print_section("蒙特卡洛模拟 — 概率回报区间")
+
+    engine = MonteCarloEngine(n_simulations=5000, seed=42)
+
+    print("\n[VC项目：120亿目标市值，60亿标准差]")
+    result = engine.simulate_vc_return(
+        entry_valuation_rmb=6.0,
+        investment_amount_rmb=1.0,
+        market_cap_dist=LognormalParam(mean=120.0, std=60.0),
+        dilution_rate_dist=NormalParam(mean=0.40, std=0.08, lo=0.10, hi=0.80),
+        hurdle_multiple=10.0,
+    )
+    print(result.summary)
+
+    print("\n[PE项目：利润增速35% ± 5%，PE扩张15→25倍]")
+    pe_result = engine.simulate_pe_return(
+        entry_pe=15.0,
+        current_profit_rmb=2.0,
+        investment_amount_rmb=5.0,
+        profit_growth_dist=NormalParam(mean=0.35, std=0.05, lo=0.05, hi=0.80),
+        exit_pe_dist=NormalParam(mean=25.0, std=5.0, lo=10.0, hi=50.0),
+        holding_years=3,
+        hurdle_multiple=3.0,
+    )
+    print(pe_result.summary)
+
+    print("\n[组合视角：20项目VC基金，幂律分布验证]")
+    sim = PortfolioSimulator(n_simulations=3000, seed=7)
+    portfolio = sim.simulate_vc_portfolio(
+        fund_size_rmb=20.0,
+        n_investments=20,
+        survival_rate=0.35,
+        winner_multiple_dist=LognormalParam(mean=15.0, std=25.0),
+        loser_multiple_dist=LognormalParam(mean=0.25, std=0.15),
+        macro_target_label="100-10-10",
+        macro_target_fund_multiple=3.0,
+    )
+    print(portfolio.summary)
+
+
+def demo_curves() -> None:
+    print_section("数学增长曲线 & 退出信号自动触发")
+
+    print("\n[企业成长 — Logistic曲线 (K=100亿, r=0.8, 顶点t=4年)]")
+    company = LogisticGrowthCurve(K=100.0, r=0.8, t0=4.0)
+    for t in [1, 2, 3, 4, 5, 6, 8]:
+        print(f"  t={t}年: 营收={company.value(t):.1f}亿 | 增速={company.growth_rate(t) * 100:.1f}%")
+
+    print("\n[行业成长 — Gompertz曲线 (K=200亿, b=5, c=0.4)]")
+    industry = GompertzCurve(K=200.0, b=5.0, c=0.4)
+    peak_t = industry.peak_derivative_time()
+    print(f"  增速顶点: t={peak_t:.2f}年 | 顶点时营收={industry.value(peak_t):.1f}亿")
+
+    print("\n[资本周期 — PE倍数历史数据拟合]")
+    cap = CapitalCycleCurve([
+        CapitalCyclePoint(0, 15, "cold"),
+        CapitalCyclePoint(2, 25, "warming"),
+        CapitalCyclePoint(4, 45, "hot"),
+        CapitalCyclePoint(7, 20, "cooling"),
+        CapitalCyclePoint(9, 12, "cold"),
+    ])
+
+    print("\n[退出信号检测 — 三曲线联动]")
+    detector = ExitSignalDetector(industry, company, cap)
+    report = detector.scan(t_start=0.0, t_end=9.0, dt=0.5)
+    print(f"  {report.summary}")
+    for sig in report.signals:
+        print(f"  [{sig.t}年] {sig.signal_type.upper()}: {sig.trigger_reason}")
+        print(f"    → {sig.recommended_action}")
+
+
+def demo_jcurve() -> None:
+    print_section("J曲线 & 基金现金流模型")
+
+    model = FundCashflowModel()
+    result = model.model(
+        fund_name="示例PE基金",
+        fund_size_rmb=10.0,
+        capital_call_schedule=[0.30, 0.30, 0.25, 0.15],
+        exit_schedule=[0, 0, 0, 0, 0.20, 0.30, 0.35, 0.15],
+        nav_growth_rate=0.28,
+    )
+    print(result.summary)
+    print("\n  年度现金流明细:")
+    print(f"  {'年份':>4} {'资本催缴':>8} {'管理费':>7} {'分配':>8} {'DPI':>6} {'TVPI':>6}")
+    print("  " + "-" * 52)
+    for f in result.annual_flows:
+        print(
+            f"  {f.year:>4} {f.capital_call_rmb:>8.2f}亿 {f.management_fee_rmb:>5.2f}亿 "
+            f"{f.distribution_rmb:>7.2f}亿 {f.dpi:>5.2f}x {f.tvpi:>5.2f}x"
+        )
+
+
+def demo_liquidity_discount() -> None:
+    print_section("动态流动性折价模型 — 宏观周期敏感")
+
+    model = LiquidityDiscountModel()
+    scenarios = [
+        ("VC — 降息周期 + S基金活跃", dict(asset_stage="vc", credit_cycle="rate_cut", s_fund_market="active")),
+        ("PE — 中性环境", dict(asset_stage="pe", credit_cycle="neutral", s_fund_market="active")),
+        ("VC — 温和加息 + S基金降温", dict(asset_stage="vc", credit_cycle="rate_hike_mild", s_fund_market="cooling")),
+        ("PE — 激进加息 + S基金冰河期", dict(asset_stage="pe", credit_cycle="rate_hike_aggressive", s_fund_market="frozen")),
+        ("PE — 基金临到期（1年）", dict(asset_stage="pe", credit_cycle="neutral", s_fund_market="cooling", years_to_fund_end=1)),
+    ]
+    for label, kwargs in scenarios:
+        r = model.calculate(**kwargs)
+        print(f"\n  [{label}]")
+        print(f"  → 建议折价率: {r.total_discount_pct:.1f}%")
+        for w in r.warnings:
+            print(f"     ⚠️  {w}")
+
+
+def demo_comps() -> None:
+    print_section("可比公司估值锚 — 外部数据接口")
+
+    anchor = CompsValuationAnchor(safety_factor=0.70)
+    anchor.add_comps([
+        CompanyComp("商汤科技", "AI视觉", pe_multiple=85.0, ev_ebitda=42.0, ps_multiple=16.0),
+        CompanyComp("旷视科技", "AI视觉", pe_multiple=72.0, ev_ebitda=36.0, ps_multiple=13.0),
+        CompanyComp("第四范式", "AI决策", pe_multiple=95.0, ev_ebitda=48.0, ps_multiple=20.0),
+        CompanyComp("云从科技", "AI视觉", pe_multiple=65.0, ev_ebitda=33.0, ps_multiple=11.0),
+        CompanyComp("格灵深瞳", "AI安防", pe_multiple=78.0, ev_ebitda=39.0, ps_multiple=14.0),
+    ])
+    result = anchor.analyze("AI视觉")
+    print(result.summary)
+    print(f"\n  PE分布: P25={result.percentile_25_pe} | 中位={result.median_pe} | P75={result.percentile_75_pe}")
+    print(f"  进场建议PE上限（保守）: {result.conservative_entry_pe}x")
+    for w in result.warnings:
+        print(f"  ⚠️  {w}")
+
+
+def demo_unrealised_strip() -> None:
+    print_section("未变现水分剔除 — GP MOC自动校正")
+
+    stripper = UnrealisedValueStripper()
+    result = stripper.strip(
+        reported_moc=4.2,
+        reported_tvpi=4.2,
+        total_invested_rmb=10.0,
+        total_distributed_rmb=8.0,
+        unrealised_holdings=[
+            {"name": "某AI独角兽", "book_value": 25.0, "follow_on_discount_pct": 35.0},
+            {"name": "某消费品牌", "book_value": 10.0, "follow_on_discount_pct": 15.0},
+            {"name": "某SaaS企业", "book_value": 7.0, "follow_on_discount_pct": 0.0},
+        ],
+    )
+    print(result.summary)
+    print("\n  逐项持仓校正:")
+    for h in result.unrealised_holdings:
+        print(
+            f"  • {h['name']}: 账面={h['book_value']:.1f}亿 | "
+            f"后续融资折价={h['follow_on_discount_pct']:.0f}% | "
+            f"校正值={h['adjusted_value']:.2f}亿"
+        )
+    for w in result.warnings:
+        print(f"  ⚠️  {w}")
+
+
 def run_full_demo() -> None:
     print(f"\n{'*' * 70}")
-    print("  一级市场投资决策模型 v1.0")
+    print("  一级市场投资决策模型 v2.0")
     print("  基于《投的好，更要退的好（2024版）》— 李刚强")
     print(f"{'*' * 70}")
 
@@ -331,6 +511,12 @@ def run_full_demo() -> None:
     demo_exit_committee()
     demo_gp_scorecard()
     demo_allocation()
+    demo_montecarlo()
+    demo_curves()
+    demo_jcurve()
+    demo_liquidity_discount()
+    demo_comps()
+    demo_unrealised_strip()
 
     print(f"\n{'*' * 70}")
     print("  演示完成。如需评估具体项目，请修改 main.py 中的参数。")
@@ -350,6 +536,12 @@ COMMANDS = {
     "gp": demo_gp_scorecard,
     "allocation": demo_allocation,
     "philosophy": demo_philosophy,
+    "montecarlo": demo_montecarlo,
+    "curves": demo_curves,
+    "jcurve": demo_jcurve,
+    "liquidity": demo_liquidity_discount,
+    "comps": demo_comps,
+    "strip": demo_unrealised_strip,
     "demo": run_full_demo,
 }
 
