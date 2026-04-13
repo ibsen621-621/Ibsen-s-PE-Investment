@@ -16,6 +16,12 @@ Usage:
     python main.py liquidity   # Dynamic liquidity discount model
     python main.py comps       # Comparable company valuation anchor
     python main.py strip       # GP MOC unrealised value stripper
+    python main.py hardtech    # Hard-tech P/Strategic evaluation
+    python main.py postinvest  # GP post-investment capability assessment
+    python main.py doubledown  # Inflection-point follow-on decision
+    python main.py dealstructure  # Deal structure & defensive clause check
+    python main.py duediligence   # Fundamental due diligence (DuPont + growth quality)
+    python main.py lpbehavior     # LP behavioral bias corrector
     python main.py demo        # Run full demo with sample data
 """
 
@@ -34,7 +40,12 @@ from src.investment_model import (
     LiquidityDiscountModel,
     GPScorecard,
     AssetAllocationAdvisor,
+    LPBehaviorChecker,
     InvestmentPhilosophyChecker,
+    HardTechStrategyEvaluator,
+    TECH_PATH_CORE_PLUGIN,
+    TECH_PATH_SYSTEM_REBUILD,
+    TECH_PATH_INCREMENTAL,
     MonteCarloEngine,
     PortfolioSimulator,
     LognormalParam,
@@ -49,6 +60,12 @@ from src.investment_model import (
     CompsValuationAnchor,
     CompanyComp,
     UnrealisedValueStripper,
+    GPPostInvestmentEvaluator,
+    DoubleDownDecisionModel,
+    AntiDilutionChecker,
+    BuybackFeasibilityChecker,
+    DuPontAnalyzer,
+    GrowthQualityChecker,
 )
 
 
@@ -493,10 +510,330 @@ def demo_unrealised_strip() -> None:
         print(f"  ⚠️  {w}")
 
 
+def demo_hardtech() -> None:
+    print_section("硬科技战略评估 — P/Strategic 战略容错率")
+
+    evaluator = HardTechStrategyEvaluator()
+
+    print("\n[场景A: 国产GPU芯片（核心插件替换型 + 卡脖子）]")
+    result_a = evaluator.evaluate(
+        tech_path_type=TECH_PATH_CORE_PLUGIN,
+        is_chokepoint_tech=True,
+        has_gov_procurement=True,
+        tech_readiness_level=7,         # TRL7: 系统样机在实际环境中演示
+        is_domestic_substitution=True,
+        is_hard_tech=True,
+    )
+    print(f"\n  技术路径: {result_a.tech_path_assessment}")
+    print(f"  战略评分: {result_a.strategic_score}/10 | 战略估值修正系数: {result_a.strategic_valuation_multiplier}x")
+    for w in result_a.warnings:
+        print(f"  ⚠️  {w}")
+    for r in result_a.recommendations:
+        print(f"  💡 {r}")
+
+    print("\n[场景B: 氢能基础设施（系统性基础设施重构）]")
+    result_b = evaluator.evaluate(
+        tech_path_type=TECH_PATH_SYSTEM_REBUILD,
+        is_chokepoint_tech=False,
+        has_gov_procurement=False,
+        tech_readiness_level=4,         # TRL4: 实验室环境验证
+        is_domestic_substitution=False,
+        is_hard_tech=True,
+    )
+    print(f"\n  技术路径: {result_b.tech_path_assessment}")
+    print(f"  战略评分: {result_b.strategic_score}/10 | 战略估值修正系数: {result_b.strategic_valuation_multiplier}x")
+    for w in result_b.warnings:
+        print(f"  ⚠️  {w}")
+
+    print("\n[场景C: 哲学检验整合（升级版 — 含战略参数）]")
+    checker = InvestmentPhilosophyChecker()
+    result_c = checker.check(
+        investment_thesis="国产先进封装技术，突破英特尔/台积电CoWoS垄断",
+        has_exit_plan=True,
+        has_profit_taking_triggers=True,
+        sector="半导体封装",
+        is_hard_tech=True,
+        is_domestic_substitution=True,
+        is_autonomous_controllable=True,
+        is_internet_traffic_model=False,
+        fund_stage="vc",
+        assumed_exit_rate_pct=14.0,
+        valuation_vs_intrinsic_pct=40.0,
+        tech_path_type=TECH_PATH_CORE_PLUGIN,
+        is_chokepoint_tech=True,
+        has_gov_procurement=True,
+        tech_readiness_level=6,
+    )
+    print(f"\n  {result_c.summary}")
+    print(f"  战略估值修正系数: {result_c.strategic_valuation_multiplier}x")
+    print(f"  技术路径评估: {result_c.tech_path_assessment[:60]}...")
+
+
+def demo_postinvest() -> None:
+    print_section("GP投后管理能力评估 — 四重境界模型")
+
+    evaluator = GPPostInvestmentEvaluator()
+
+    scenarios = [
+        ("顶级GP（第四境界 — 退出导向）", dict(
+            has_financial_monitoring=True,
+            has_3r_services=True,
+            has_strategic_empowerment=True,
+            has_exit_oriented_management=True,
+            portfolio_company_survival_rate=0.72,
+            avg_time_to_next_round_months=14.0,
+        )),
+        ("中等GP（第二境界 — 3R服务）", dict(
+            has_financial_monitoring=True,
+            has_3r_services=True,
+            has_strategic_empowerment=False,
+            has_exit_oriented_management=False,
+            portfolio_company_survival_rate=0.55,
+            avg_time_to_next_round_months=22.0,
+        )),
+        ("初级GP（第一境界 — 查账）", dict(
+            has_financial_monitoring=True,
+            has_3r_services=False,
+            has_strategic_empowerment=False,
+            has_exit_oriented_management=False,
+            portfolio_company_survival_rate=0.40,
+            avg_time_to_next_round_months=30.0,
+        )),
+    ]
+
+    for label, kwargs in scenarios:
+        result = evaluator.evaluate(**kwargs)
+        print(f"\n  [{label}]")
+        print(f"  {result.summary}")
+        for w in result.warnings:
+            print(f"    ⚠️  {w}")
+        for r in result.recommendations:
+            print(f"    💡 {r}")
+
+
+def demo_doubledown() -> None:
+    print_section("拐点追投决策模型 — 跨越死亡谷")
+
+    model = DoubleDownDecisionModel()
+
+    scenarios = [
+        ("固态电池企业：技术突破，强信号", dict(
+            initial_investment_rmb=0.5,
+            current_valuation_rmb=8.0,
+            initial_valuation_rmb=2.0,
+            tech_milestone_achieved=True,       # 良率突破80%
+            benchmark_customer_secured=True,    # 比亚迪订单
+            revenue_inflection=True,            # 营收从0到5000万
+            competitive_moat_strengthened=True, # 专利壁垒建立
+            follow_on_round_quality="top_tier",
+            fund_remaining_capacity_rmb=5.0,
+        )),
+        ("AI软件企业：弱信号+估值偏高", dict(
+            initial_investment_rmb=1.0,
+            current_valuation_rmb=25.0,
+            initial_valuation_rmb=4.0,
+            tech_milestone_achieved=False,
+            benchmark_customer_secured=True,
+            revenue_inflection=False,
+            competitive_moat_strengthened=False,
+            follow_on_round_quality="mid_tier",
+            fund_remaining_capacity_rmb=8.0,
+        )),
+        ("医疗器械：信号不足，不建议追投", dict(
+            initial_investment_rmb=0.3,
+            current_valuation_rmb=3.0,
+            initial_valuation_rmb=1.5,
+            tech_milestone_achieved=False,
+            benchmark_customer_secured=False,
+            revenue_inflection=False,
+            competitive_moat_strengthened=False,
+            follow_on_round_quality="weak",
+            fund_remaining_capacity_rmb=3.0,
+        )),
+    ]
+
+    for label, kwargs in scenarios:
+        result = model.decide(**kwargs)
+        print(f"\n  [{label}]")
+        print(f"  {result.summary}")
+        for w in result.warnings:
+            print(f"    ⚠️  {w}")
+        for r in result.recommendations:
+            print(f"    💡 {r}")
+
+
+def demo_dealstructure() -> None:
+    print_section("交易结构与底线防守 — 老股转让与回购条款检验")
+
+    print("\n[老股转让检验]")
+    anti_checker = AntiDilutionChecker()
+
+    print("\n  [场景A: 创始人3折套现老股（红旗）]")
+    result_a = anti_checker.check(
+        founder_selling_pct=25.0,           # 出售25%持股
+        selling_discount_pct=70.0,          # 折扣70%（即3折成交）
+        latest_round_valuation_rmb=20.0,    # 最新轮20亿估值
+        has_anti_dilution_clause=True,
+        anti_dilution_type="full_ratchet",
+    )
+    print(f"  {result_a.summary}")
+    for w in result_a.warnings:
+        print(f"    ⚠️  {w}")
+
+    print("\n  [场景B: 正常老股转让（低风险）]")
+    result_b = anti_checker.check(
+        founder_selling_pct=5.0,
+        selling_discount_pct=20.0,
+        latest_round_valuation_rmb=20.0,
+        has_anti_dilution_clause=True,
+        anti_dilution_type="weighted_average",
+    )
+    print(f"  {result_b.summary}")
+
+    print("\n[回购条款可行性检验]")
+    buyback_checker = BuybackFeasibilityChecker()
+
+    print("\n  [场景A: 高风险对赌（营收目标过高+无连带担保）]")
+    result_c = buyback_checker.check(
+        buyback_trigger_metric="revenue",
+        buyback_trigger_value=5.0,          # 目标5亿营收
+        actual_value=2.0,                   # 实际2亿
+        founder_personal_assets_rmb=0.5,    # 创始人0.5亿
+        has_joint_liability=False,
+        company_cash_reserve_rmb=0.8,
+        buyback_amount_rmb=3.0,
+    )
+    print(f"  {result_c.summary}")
+    for w in result_c.warnings:
+        print(f"    ⚠️  {w}")
+
+    print("\n  [场景B: 可执行对赌（合理指标+连带担保）]")
+    result_d = buyback_checker.check(
+        buyback_trigger_metric="profit",
+        buyback_trigger_value=0.8,          # 目标8000万利润
+        actual_value=0.5,                   # 实际5000万
+        founder_personal_assets_rmb=3.0,
+        has_joint_liability=True,
+        company_cash_reserve_rmb=2.0,
+        buyback_amount_rmb=2.5,
+    )
+    print(f"  {result_d.summary}")
+    for r in result_d.recommendations:
+        print(f"    💡 {r}")
+
+
+def demo_duediligence() -> None:
+    print_section("基本面尽调 — 杜邦分析 + 增长质量检验")
+
+    print("\n[杜邦分析]")
+    dupont = DuPontAnalyzer()
+
+    scenarios = [
+        ("高利润模式：某创新医疗器械企业", dict(
+            net_profit_rmb=3.0,
+            revenue_rmb=15.0,
+            total_assets_rmb=20.0,
+            total_equity_rmb=15.0,
+        )),
+        ("高周转模式：某连锁零售企业", dict(
+            net_profit_rmb=0.5,
+            revenue_rmb=30.0,
+            total_assets_rmb=10.0,
+            total_equity_rmb=6.0,
+        )),
+        ("高杠杆风险：某商业地产项目", dict(
+            net_profit_rmb=2.0,
+            revenue_rmb=20.0,
+            total_assets_rmb=80.0,
+            total_equity_rmb=16.0,
+        )),
+    ]
+
+    for label, kwargs in scenarios:
+        result = dupont.analyze(**kwargs)
+        print(f"\n  [{label}]")
+        print(f"  {result.summary}")
+        for w in result.warnings:
+            print(f"    ⚠️  {w}")
+        for r in result.recommendations:
+            print(f"    💡 {r}")
+
+    print("\n[增长质量检验 — 伪增长检测]")
+    growth_checker = GrowthQualityChecker()
+
+    print("\n  [场景A: 真实增长 — SaaS企业]")
+    result_g = growth_checker.check(
+        gmv_rmb=5.0,
+        revenue_rmb=5.0,
+        user_retention_rate_pct=92.0,       # 年留存92%
+        nps_score=55,
+        customer_acquisition_cost_rmb=0.05,
+        lifetime_value_rmb=0.30,
+        revenue_from_subsidies_pct=5.0,
+        business_model="saas",
+        net_dollar_retention_pct=118.0,     # NDR 118%
+    )
+    print(f"  {result_g.summary}")
+
+    print("\n  [场景B: 伪增长 — 烧钱补贴驱动的To C平台]")
+    result_h = growth_checker.check(
+        gmv_rmb=50.0,
+        revenue_rmb=5.0,
+        user_retention_rate_pct=18.0,       # 月留存仅18%
+        nps_score=-15,
+        customer_acquisition_cost_rmb=0.20,
+        lifetime_value_rmb=0.30,
+        revenue_from_subsidies_pct=45.0,
+        business_model="to_c",
+    )
+    print(f"  {result_h.summary}")
+    for w in result_h.warnings:
+        print(f"    ⚠️  {w}")
+
+
+def demo_lpbehavior() -> None:
+    print_section("LP行为学纠偏 — 灵魂拷问检测")
+
+    checker = LPBehaviorChecker()
+
+    print("\n[场景A: 理性LP — 有数据支撑的独立判断]")
+    result_a = checker.check(
+        attracted_by_narrative=True,
+        has_concrete_evidence=True,
+        following_famous_fund=True,
+        has_independent_analysis=True,
+        estimated_win_probability_pct=25.0,
+        expected_return_multiple=8.0,
+        expected_loss_multiple=0.2,
+    )
+    print(f"\n  {result_a.summary}")
+    print(f"  期望值: {result_a.expected_value:.2f}x")
+    for q in result_a.soul_questions:
+        print(f"  ❓ {q}")
+
+    print("\n[场景B: 高风险LP — 多重行为偏差]")
+    result_b = checker.check(
+        attracted_by_narrative=True,
+        has_concrete_evidence=False,      # 未看具体数据
+        following_famous_fund=True,
+        has_independent_analysis=False,   # 未做独立分析
+        estimated_win_probability_pct=30.0,
+        expected_return_multiple=3.0,
+        expected_loss_multiple=0.1,
+    )
+    print(f"\n  {result_b.summary}")
+    for w in result_b.warnings:
+        print(f"  ⚠️  {w}")
+    for q in result_b.soul_questions:
+        print(f"  ❓ {q}")
+
+
+
 def run_full_demo() -> None:
     print(f"\n{'*' * 70}")
-    print("  一级市场投资决策模型 v2.0")
+    print("  一级市场投资决策模型 v3.0")
     print("  基于《投的好，更要退的好（2024版）》— 李刚强")
+    print("  新增：硬科技战略/投后管理/交易结构/基本面尽调/LP行为纠偏")
     print(f"{'*' * 70}")
 
     demo_philosophy()
@@ -517,6 +854,13 @@ def run_full_demo() -> None:
     demo_liquidity_discount()
     demo_comps()
     demo_unrealised_strip()
+    # New modules
+    demo_hardtech()
+    demo_postinvest()
+    demo_doubledown()
+    demo_dealstructure()
+    demo_duediligence()
+    demo_lpbehavior()
 
     print(f"\n{'*' * 70}")
     print("  演示完成。如需评估具体项目，请修改 main.py 中的参数。")
@@ -542,6 +886,12 @@ COMMANDS = {
     "liquidity": demo_liquidity_discount,
     "comps": demo_comps,
     "strip": demo_unrealised_strip,
+    "hardtech": demo_hardtech,
+    "postinvest": demo_postinvest,
+    "doubledown": demo_doubledown,
+    "dealstructure": demo_dealstructure,
+    "duediligence": demo_duediligence,
+    "lpbehavior": demo_lpbehavior,
     "demo": run_full_demo,
 }
 
@@ -555,3 +905,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     COMMANDS[sys.argv[1]]()
+
