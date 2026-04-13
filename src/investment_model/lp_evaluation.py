@@ -5,6 +5,7 @@ LP Evaluation & GP Scorecard
 Implements:
 - GP Scorecard with 6 core indicators (source: [cite 496, 497, 498])
 - Asset Allocation Advisor (三不与三要 / Three-no Three-yes framework)
+- LP Behavior Checker (个人LP行为学纠偏)
 """
 
 from __future__ import annotations
@@ -369,3 +370,193 @@ class AssetAllocationAdvisor:
             warnings=warnings,
             recommendations=recommendations,
         )
+
+
+# ---------------------------------------------------------------------------
+# LP Behavior Checker / 个人LP行为学纠偏
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LPBehaviorResult:
+    """个人LP行为学纠偏结果 / LP behavioral bias check result."""
+    narrative_trap_detected: bool       # 宏大叙事陷阱检测
+    fomo_detected: bool                 # FOMO跟风效应检测
+    expected_value: float               # 期望收益值（倍数）
+    is_rational_decision: bool          # 综合判断：是否为理性决策
+    soul_questions: list[str]           # 给LP的灵魂拷问清单
+    summary: str
+    warnings: list[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
+
+
+class LPBehaviorChecker:
+    """
+    个人LP行为学纠偏器
+    LP Behavioral Bias Corrector
+
+    Individual LPs often lose money not because they can't calculate returns,
+    but because of fundamental human biases. This checker performs a "soul
+    interrogation" (灵魂拷问) on the LP's own decision-making process.
+
+    Three core checks:
+    1. Grand Narrative Trap (宏大叙事陷阱): Attracted by "trillion-dollar market,
+       led by renowned academics" without concrete evidence
+    2. FOMO Effect (跟风效应): Following famous funds without independent analysis
+    3. Cold Math: Expected value calculation from win probability and return/loss multiples
+    """
+
+    def check(
+        self,
+        *,
+        # 1. Narrative trap / 宏大叙事陷阱
+        attracted_by_narrative: bool,       # 是否被宏大叙事（万亿赛道/院士领衔）吸引
+        has_concrete_evidence: bool,        # 是否看到具体的订单/良率/财务数据
+        # 2. FOMO effect / 跟风效应
+        following_famous_fund: bool,        # 是否因知名机构投了才跟投
+        has_independent_analysis: bool,     # 是否做了独立分析
+        # 3. Expected value / 期望值计算
+        estimated_win_probability_pct: float,   # 预估胜率（%，0-100）
+        expected_return_multiple: float,        # 胜出时的预期回报倍数
+        expected_loss_multiple: float,          # 失败时的亏损倍数（通常0.0-1.0，0=全亏）
+    ) -> LPBehaviorResult:
+        """
+        Perform a behavioral bias check on the LP's investment decision.
+
+        Parameters
+        ----------
+        attracted_by_narrative:          LP was attracted by grand narrative claims
+        has_concrete_evidence:           LP has reviewed concrete orders, yields, financials
+        following_famous_fund:           LP is following because a famous fund invested
+        has_independent_analysis:        LP has done own independent due diligence
+        estimated_win_probability_pct:   LP's estimated probability of success (0-100)
+        expected_return_multiple:        Expected return multiple on success (e.g., 5.0 = 5x)
+        expected_loss_multiple:          Expected value of loss on failure (0.0 = total loss,
+                                         0.5 = recover 50% of capital)
+        """
+        warnings: list[str] = []
+        recommendations: list[str] = []
+        soul_questions: list[str] = []
+
+        # --- Check 1: Grand narrative trap ---
+        narrative_trap_detected = attracted_by_narrative and not has_concrete_evidence
+
+        if narrative_trap_detected:
+            warnings.append(
+                "⚠️ 宏大叙事陷阱警告：您被'万亿赛道、院士领衔'等宏大叙事所吸引，"
+                "但尚未看到具体的订单数据、技术良率或财务验证。"
+                "宏大叙事是吸引注意力的工具，不是投资的依据。"
+            )
+            soul_questions.append(
+                "【灵魂拷问1】您能说出该公司最近一个季度的具体营收数字、"
+                "主要客户名称和产品良率吗？如果不能，您投的是叙事而非企业。"
+            )
+        elif attracted_by_narrative and has_concrete_evidence:
+            recommendations.append(
+                "叙事+数据双重验证：您既被赛道叙事吸引，也验证了具体数据，"
+                "这是正确的投资路径——叙事给方向，数据定价值。"
+            )
+            soul_questions.append(
+                "【建议】持续追踪核心数据指标（良率/订单/营收），"
+                "当数据与叙事出现偏差时及时复盘。"
+            )
+        else:
+            soul_questions.append(
+                "【灵魂拷问1】您决策的核心依据是什么？请确保有具体数据支撑，"
+                "而非仅基于行业趋势判断。"
+            )
+
+        # --- Check 2: FOMO effect ---
+        fomo_detected = following_famous_fund and not has_independent_analysis
+
+        if fomo_detected:
+            warnings.append(
+                "⚠️ FOMO跟风效应警告：您因某知名机构（如知名VC）投了而选择跟投，"
+                "但并未做独立分析。知名机构也会犯错，且其投资逻辑和您的风险偏好可能完全不同。"
+                "跟风是情绪驱动，不是投资逻辑。"
+            )
+            soul_questions.append(
+                "【灵魂拷问2】如果该知名机构从未投过这家公司，"
+                "您还会投吗？如果答案是'不会'，您投的是机构背书而非企业本身。"
+            )
+        elif following_famous_fund and has_independent_analysis:
+            recommendations.append(
+                "知名机构背书+独立分析：您在验证了知名机构的投资逻辑后形成了独立判断，"
+                "这是成熟LP的正确做法。"
+            )
+
+        # --- Check 3: Expected value calculation ---
+        win_prob = estimated_win_probability_pct / 100.0
+        loss_prob = 1.0 - win_prob
+
+        # EV = win_prob * return_multiple + loss_prob * loss_multiple
+        # Note: loss_multiple should be ≤ 1.0 (0 = total loss, 1 = full return of capital)
+        # We interpret expected_loss_multiple as what fraction of capital is returned on loss
+        expected_value = win_prob * expected_return_multiple + loss_prob * expected_loss_multiple
+
+        if expected_value < 1.0:
+            warnings.append(
+                f"❄️ 冷酷数学警告：期望值 = {win_prob:.0%} × {expected_return_multiple:.1f}x + "
+                f"{loss_prob:.0%} × {expected_loss_multiple:.2f}x = {expected_value:.2f}x < 1.0x。"
+                "从概率论角度，这笔投资的期望收益为负。"
+                "除非您有充分理由认为胜率/回报倍数被低估，否则在数学上不应投资。"
+            )
+            soul_questions.append(
+                f"【灵魂拷问3】您的期望值仅为 {expected_value:.2f}x，"
+                "数学告诉您这不是一笔好投资。您是否有额外的信息不对称优势，"
+                "使实际胜率远高于您的估算？"
+            )
+        elif expected_value >= 2.0:
+            recommendations.append(
+                f"期望值 {expected_value:.2f}x ≥ 2.0x，从赔率角度值得投资。"
+                "核心风险是胜率估算是否准确——请务必验证您的胜率假设。"
+            )
+            soul_questions.append(
+                f"【确认问题】您的期望值为 {expected_value:.2f}x，赔率合理。"
+                f"请再次确认：您的胜率估算 {estimated_win_probability_pct:.0f}% 是基于什么证据？"
+            )
+        else:
+            soul_questions.append(
+                f"【灵魂拷问3】期望值 {expected_value:.2f}x，勉强达标。"
+                "请量化您的核心风险：最可能让这笔投资失败的因素是什么？"
+            )
+
+        # --- Overall rationality assessment ---
+        rationality_issues = sum([narrative_trap_detected, fomo_detected, expected_value < 1.0])
+        is_rational_decision = rationality_issues == 0
+
+        if rationality_issues >= 2:
+            warnings.append(
+                f"检测到 {rationality_issues} 个行为偏差，当前决策受情绪和认知偏差影响显著，"
+                "建议暂缓投资决策，给自己48小时冷静期后重新评估。"
+            )
+        elif rationality_issues == 1:
+            recommendations.append(
+                "存在1个行为偏差需要关注，建议在消除该偏差后再做最终决策。"
+            )
+
+        soul_questions.append(
+            "【终极问题】如果这笔投资亏损一半，您的生活质量会受到显著影响吗？"
+            "一级市场投资的平均退出周期为7-9年，在此期间该资金不可动用，"
+            "请确认您的资金期限与投资期限匹配。"
+        )
+
+        rationality_labels = {True: "✅ 决策路径基本理性", False: "⚠️ 存在显著行为偏差"}
+        summary = (
+            f"{rationality_labels[is_rational_decision]} | "
+            f"宏大叙事陷阱: {'⚠️ 是' if narrative_trap_detected else '✅ 否'} | "
+            f"FOMO跟风: {'⚠️ 是' if fomo_detected else '✅ 否'} | "
+            f"期望值: {expected_value:.2f}x | "
+            f"灵魂拷问: {len(soul_questions)}题"
+        )
+
+        return LPBehaviorResult(
+            narrative_trap_detected=narrative_trap_detected,
+            fomo_detected=fomo_detected,
+            expected_value=round(expected_value, 3),
+            is_rational_decision=is_rational_decision,
+            soul_questions=soul_questions,
+            summary=summary,
+            warnings=warnings,
+            recommendations=recommendations,
+        )
+

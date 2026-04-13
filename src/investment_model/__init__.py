@@ -15,8 +15,14 @@ from .metrics import (
     UnrealisedValueStripper,
 )
 from .exit import ExitAnalyzer, ExitDecisionCommittee, LiquidityDiscountModel
-from .lp_evaluation import GPScorecard, AssetAllocationAdvisor
-from .philosophy import InvestmentPhilosophyChecker
+from .lp_evaluation import GPScorecard, AssetAllocationAdvisor, LPBehaviorChecker
+from .philosophy import (
+    InvestmentPhilosophyChecker,
+    HardTechStrategyEvaluator,
+    TECH_PATH_CORE_PLUGIN,
+    TECH_PATH_SYSTEM_REBUILD,
+    TECH_PATH_INCREMENTAL,
+)
 from .simulation import (
     MonteCarloEngine,
     PortfolioSimulator,
@@ -32,6 +38,9 @@ from .curves import (
     ExitSignalDetector,
 )
 from .fund_cashflow import FundCashflowModel
+from .post_investment import GPPostInvestmentEvaluator, DoubleDownDecisionModel
+from .deal_structure import AntiDilutionChecker, BuybackFeasibilityChecker
+from .due_diligence import DuPontAnalyzer, GrowthQualityChecker
 
 __all__ = [
     # Stage models
@@ -53,8 +62,13 @@ __all__ = [
     # LP/GP evaluation
     "GPScorecard",
     "AssetAllocationAdvisor",
+    "LPBehaviorChecker",
     # Philosophy
     "InvestmentPhilosophyChecker",
+    "HardTechStrategyEvaluator",
+    "TECH_PATH_CORE_PLUGIN",
+    "TECH_PATH_SYSTEM_REBUILD",
+    "TECH_PATH_INCREMENTAL",
     # Monte Carlo / simulation
     "MonteCarloEngine",
     "PortfolioSimulator",
@@ -69,4 +83,13 @@ __all__ = [
     "ExitSignalDetector",
     # Fund cash flows
     "FundCashflowModel",
+    # Post-investment management
+    "GPPostInvestmentEvaluator",
+    "DoubleDownDecisionModel",
+    # Deal structure
+    "AntiDilutionChecker",
+    "BuybackFeasibilityChecker",
+    # Due diligence
+    "DuPontAnalyzer",
+    "GrowthQualityChecker",
 ]
