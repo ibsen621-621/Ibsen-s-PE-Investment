@@ -87,9 +87,9 @@ class ThreeLayerValuationStack:
     ----------------
     safety_margin = (adjusted_ceiling - intrinsic_floor) / entry_price - 1
 
-    - > 0.40 (40%) → INVEST：地板到天花板的空间远大于进场价，有真实安全边际
-    - 0.20~0.40 → NEGOTIATE_TERMS：空间有限，需要更强的条款保护（优先清算权、棘轮等）
-    - < 0.20 → PASS：安全边际不足，定价偏高，宁愿错过也不要贸然入场
+    - > invest_threshold (默认40%) → INVEST：地板到天花板的空间远大于进场价，有真实安全边际
+    - negotiate_threshold~invest_threshold → NEGOTIATE_TERMS：空间有限，需要更强的条款保护
+    - < negotiate_threshold (默认20%) → PASS：安全边际不足，定价偏高，宁愿错过也不要贸然入场
 
     宏观调整
     --------
@@ -100,9 +100,25 @@ class ThreeLayerValuationStack:
     分子不变分母变大，两个端点均下调。这是诚实地反映宏观风险的做法。
     """
 
-    # 安全边际阈值
-    INVEST_THRESHOLD = 0.40         # 40%
-    NEGOTIATE_THRESHOLD = 0.20      # 20%
+    # 默认安全边际阈值（可通过构造函数自定义）
+    DEFAULT_INVEST_THRESHOLD: float = 0.40    # 40%
+    DEFAULT_NEGOTIATE_THRESHOLD: float = 0.20  # 20%
+
+    def __init__(
+        self,
+        invest_threshold: float = DEFAULT_INVEST_THRESHOLD,
+        negotiate_threshold: float = DEFAULT_NEGOTIATE_THRESHOLD,
+    ) -> None:
+        """
+        初始化三层估值堆栈。
+
+        Parameters
+        ----------
+        invest_threshold       INVEST门槛（安全边际下限，默认40%）
+        negotiate_threshold    NEGOTIATE_TERMS门槛（安全边际下限，默认20%）
+        """
+        self.invest_threshold = invest_threshold
+        self.negotiate_threshold = negotiate_threshold
 
     def evaluate(
         self,
@@ -168,25 +184,25 @@ class ThreeLayerValuationStack:
             warnings.append("进场估值 ≤ 0，安全边际计算无效。")
 
         # --- 投资建议 ---
-        if safety_margin_pct >= self.INVEST_THRESHOLD:
+        if safety_margin_pct >= self.invest_threshold:
             recommendation = "INVEST"
             recommendations.append(
-                f"✅ 安全边际带宽 {safety_margin_pct:.1%}（>{self.INVEST_THRESHOLD:.0%}），"
+                f"✅ 安全边际带宽 {safety_margin_pct:.1%}（>{self.invest_threshold:.0%}），"
                 "三层估值堆栈验证通过，建议进场投资。"
                 f"地板价={intrinsic_floor:.2f}亿 vs 天花板={adjusted_ceiling:.2f}亿，"
                 "空间充裕，具备真实安全边际。"
             )
-        elif safety_margin_pct >= self.NEGOTIATE_THRESHOLD:
+        elif safety_margin_pct >= self.negotiate_threshold:
             recommendation = "NEGOTIATE_TERMS"
             recommendations.append(
-                f"⚠️ 安全边际带宽 {safety_margin_pct:.1%}（位于{self.NEGOTIATE_THRESHOLD:.0%}-{self.INVEST_THRESHOLD:.0%}之间），"
+                f"⚠️ 安全边际带宽 {safety_margin_pct:.1%}（位于{self.negotiate_threshold:.0%}-{self.invest_threshold:.0%}之间），"
                 "边际合格但空间有限。建议谈判更强的条款保护："
                 "① 1x优先清算权  ② 棘轮反稀释  ③ 里程碑分期付款"
             )
         else:
             recommendation = "PASS"
             warnings.append(
-                f"❌ 安全边际带宽仅 {safety_margin_pct:.1%}（<{self.NEGOTIATE_THRESHOLD:.0%}），"
+                f"❌ 安全边际带宽仅 {safety_margin_pct:.1%}（<{self.negotiate_threshold:.0%}），"
                 "当前定价过高，三层估值堆栈不支持进场。"
                 "宁愿错过也不要以无安全边际的价格入场。"
             )

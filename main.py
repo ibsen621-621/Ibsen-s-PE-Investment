@@ -92,6 +92,8 @@ from src.investment_model import (
 
 
 SEPARATOR = "=" * 70
+# 汇率常量（仅用于 demo 展示，非估值计算）
+USD_TO_RMB_RATE = 7.2
 
 
 def print_section(title: str) -> None:
@@ -910,7 +912,7 @@ def demo_narrativedcf() -> None:
             f"{seg.cumulative_burn_rmb:>8.0f}亿"
         )
     print(f"\n  → SOTP企业价值: {result.sotp_ev_rmb:.0f}亿元 "
-          f"（约{result.sotp_ev_rmb/720:.1f}万亿美元，按1USD=7.2RMB）")
+          f"（约{result.sotp_ev_rmb/USD_TO_RMB_RATE/10000:.1f}万亿美元，按1USD={USD_TO_RMB_RATE}RMB）")
 
 
 def demo_probability() -> None:

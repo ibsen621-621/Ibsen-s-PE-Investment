@@ -114,6 +114,12 @@ class DistressDualTrackValuer:
                        - restructuring_cost
     """
 
+    # Newton-Raphson 求 YTM 的收敛边界
+    # 下界：0.1% — 防止 YTM 趋近于零时分母溢出（零利率债券在收益率模型中无意义）
+    # 上界：99%  — 防止极度折价债券的迭代发散（实际垃圾债 YTM 极少超过 80%）
+    _YTM_LOWER_BOUND: float = 0.001
+    _YTM_UPPER_BOUND: float = 0.99
+
     # ------------------------------------------------------------------
     # 路径1：债券定价反推破产概率
     # Path 1: Bond Pricing → Implied Default Probability
@@ -181,7 +187,8 @@ class DistressDualTrackValuer:
                 ytm = ytm_new
                 break
             ytm = ytm_new
-            ytm = max(0.001, min(ytm, 0.99))  # 防止发散
+            ytm = max(DistressDualTrackValuer._YTM_LOWER_BOUND,
+                      min(ytm, DistressDualTrackValuer._YTM_UPPER_BOUND))
 
         # 无风险利率近似：若票面利率<5%，用票面利率；否则用3%
         risk_free_approx = coupon_rate if coupon_rate < 0.05 else 0.03
