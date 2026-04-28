@@ -1,21 +1,27 @@
-"""
-# ============================================================
-# Gemini Gems 参考文件 07 — 投后管理 + 交易结构 + 基本面尽调
-# 合并来源:
-#   - src/investment_model/post_investment.py  (GP投后四重境界、拐点追投)
-#   - src/investment_model/deal_structure.py   (老股转让、反稀释、回购可行性)
-#   - src/investment_model/due_diligence.py    (杜邦分析、伪增长检测)
-# 说明: 本文件为自包含参考文档，供 Gemini Gems 知识库使用
-# ============================================================
-"""
+# ==== GEMS FILE: 04_post_deal_dd.py ====
+# Merged from: post_investment.py, deal_structure.py, due_diligence.py
+# For Gemini Gems knowledge base — v4.0
+# NOTE: This is a knowledge reference file, not executable production code.
+#       Cross-module imports have been annotated for clarity.
 
 from __future__ import annotations
 from dataclasses import dataclass, field
 
-# ============================================================
-# 原始文件: post_investment.py
-# GP投后管理四重境界 & 拐点追投决策模型
-# ============================================================
+
+# ==== ORIGIN: post_investment.py ====
+"""
+投后管理与拐点追投模块
+Post-Investment Management & Inflection-Point Follow-on Module
+
+Implements:
+- GPPostInvestmentEvaluator: Quantifies GP post-investment capabilities (4 levels, 40pts)
+- DoubleDownDecisionModel: Follow-on investment decision at inflection points
+
+All amounts in 亿元 RMB.
+"""
+
+
+
 
 # ---------------------------------------------------------------------------
 # GP Post-Investment Level Evaluator / GP投后管理境界评估
@@ -365,10 +371,20 @@ class DoubleDownDecisionModel:
         )
 
 
-# ============================================================
-# 原始文件: deal_structure.py
-# 交易结构与底线防守 (老股转让 / 反稀释 / 回购可行性)
-# ============================================================
+# ==== ORIGIN: deal_structure.py ====
+"""
+交易结构与底线防守模块
+Deal Structure & Defensive Clause Module
+
+Implements:
+- AntiDilutionChecker: Old-share transfer and anti-dilution clause detection
+- BuybackFeasibilityChecker: Buyback / valuation adjustment clause feasibility
+
+All amounts in 亿元 RMB.
+"""
+
+
+
 
 # ---------------------------------------------------------------------------
 # Anti-Dilution Checker / 老股转让与反稀释检验
@@ -696,10 +712,20 @@ class BuybackFeasibilityChecker:
         )
 
 
-# ============================================================
-# 原始文件: due_diligence.py
-# 基本面尽调定量交叉验证 (杜邦分析 / 伪增长检测)
-# ============================================================
+# ==== ORIGIN: due_diligence.py ====
+"""
+基本面尽调定量交叉验证模块
+Fundamental Due Diligence Quantitative Cross-Validation Module
+
+Implements:
+- DuPontAnalyzer: ROE decomposition into three business model drivers
+- GrowthQualityChecker: Pseudo-growth detection (伪增长检测)
+
+All amounts in 亿元 RMB.
+"""
+
+
+
 
 # ---------------------------------------------------------------------------
 # DuPont Analyzer / 杜邦分析

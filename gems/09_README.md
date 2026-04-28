@@ -1,226 +1,185 @@
-# 一级市场投资决策模型
+# 一级市场投资决策模型 — Gemini Gems v4.0 知识库总览
 
-> 基于《投的好，更要退的好（2024版）》— 李刚强  
-> Primary Market Investment Decision Model based on "Invest Well, Exit Better (2024 Edition)"
+> 基于《投的好，更要退的好（2024版）》— 李刚强 + 达莫达兰估值工具箱（v4.0）
+> Primary Market Investment Decision Model + Damodaran Valuation Toolkit (v4.0)
 
-## 核心功能 | Features
+---
 
-本模型将书中五大维度的投资框架量化为可执行的 Python 决策工具，v3.0 新增五大维度升级：
+## 为什么这 10 个文件是最优整合方案
 
-| 模块 | 功能描述 |
-|------|----------|
-| **投资阶段模型** | 天使轮50-50-1、VC 100-10-10、PE三年三倍/四年四倍、北交所安全垫模型 |
-| **财务指标计算** | IRR（含Newton-Raphson多期现金流）、DPI/TVPI转化率分析、戴维斯双杀风险检测 |
-| **退出分析系统** | 三条抛物线退出时机、流动性危机预警、退出决策委员会多渠道评估 |
-| **LP评估框架** | GP六大核心指标评分卡、三不三要资产配置建议 |
-| **投资哲学检验** | 价值投机一致性、政治经济视角评分、退出率现实性校验 |
-| **🆕 硬科技战略评估** | P/Strategic维度：技术落地路径检验、卡脖子PMF评估、战略估值修正系数 |
-| **🆕 投后管理与拐点追投** | GP四重境界评分（40分制）、死亡谷穿越拐点追投决策模型 |
-| **🆕 交易结构与底线防守** | 老股转让红旗检测、反稀释条款触发、回购可行性评估 |
-| **🆕 基本面尽调** | 杜邦分析ROE三因子拆解、伪增长检测（LTV/CAC/留存/NPS/补贴） |
-| **🆕 LP行为学纠偏** | 宏大叙事陷阱检测、FOMO跟风检测、期望值冷酷数学计算、灵魂拷问清单 |
+Gemini Gems 平台每个 Gem 最多支持 **10 个知识文件**。原始 `src/investment_model/` 目录下共有 **19 个** Python 模块（v3.0 的 11 个 + v4.0 的 8 个），远超限额。
+
+本方案的整合逻辑：
+
+| 整合原则 | 具体体现 |
+|---------|---------|
+| **功能内聚** | 同一业务场景的工具合并（如 narrative_dcf + cyclical_normalization 同属"地板价估值"） |
+| **调用链聚合** | 经常联动使用的模块放在一起（如 exit + lp_evaluation + philosophy 构成"完整尽调视角"） |
+| **Layer 完整性** | 达莫达兰三层堆栈（Layer 1-3）各自独立为文件，便于 Gem 按层路由 |
+| **文件均匀** | 每个文件 26-65KB，避免单文件过大影响摄取质量 |
+| **API 可追溯** | 每段代码均保留 `# ==== ORIGIN: {source}.py ====` 分隔符，方便追溯来源 |
+
+---
+
+## 知识文件清单（10 个）
+
+| 文件 | 合并来源 | 核心类/函数 | Gem 使用场景 |
+|------|---------|-----------|------------|
+| **01_stages_metrics.py** | `stages.py` + `metrics.py` | `AngelModel`, `VCModel`, `PEModel`, `BSEModel`, `IRRCalculator`, `DPITVPICalculator`, `ValuationAnalyzer`, `CompsValuationAnchor`, `UnrealisedValueStripper` | 阶段模型评估、IRR/DPI/TVPI 计算、戴维斯双杀检测、可比公司估值锚 |
+| **02_exit_lp_gp.py** | `exit.py` + `lp_evaluation.py` + `philosophy.py` | `ExitAnalyzer`, `ExitDecisionCommittee`, `LiquidityDiscountModel`, `GPScorecard`, `AssetAllocationAdvisor`, `LPBehaviorChecker`, `InvestmentPhilosophyChecker`, `HardTechStrategyEvaluator` | 退出时机分析、GP 评分卡、LP 行为纠偏、P/Strategic 硬科技战略评估 |
+| **03_simulation_curves_cashflow.py** | `simulation.py` + `curves.py` + `fund_cashflow.py` | `MonteCarloEngine`, `PortfolioSimulator`, `LognormalParam`, `NormalParam`, `PoissonParam`, `LogisticGrowthCurve`, `GompertzCurve`, `ExitSignalDetector`, `FundCashflowModel` | 蒙特卡洛概率模拟、增长曲线退出信号、J 曲线/基金现金流 |
+| **04_post_deal_dd.py** | `post_investment.py` + `deal_structure.py` + `due_diligence.py` | `GPPostInvestmentEvaluator`, `DoubleDownDecisionModel`, `AntiDilutionChecker`, `BuybackFeasibilityChecker`, `DuPontAnalyzer`, `GrowthQualityChecker` | 投后管理境界评分、拐点追投决策、交易结构审查、基本面尽调 |
+| **05_narrative_dcf.py** | `narrative_dcf.py` + `cyclical_normalization.py` | `NarrativeDCFValuer`, `BusinessSegment`, `NarrativeDCFResult`, `SegmentValuationDetail`, `CyclicalNormalizer`, `NormalizationResult`, `RegressionResult` | 叙事DCF地板价（Layer 1）、SOTP加总、周期股利润率常态化 |
+| **06_probabilistic_pricing.py** | `probabilistic_valuation.py` + `pricing_deconstructor.py` | `ExpansionOptionValuer`, `ExpansionOptionResult`, `ValuationDistribution`, `ValuationDistributionResult`, `PricingGymnasticsDetector`, `Comp`, `PricingDeconstructionResult` | 扩张期权定价（Layer 2）、蒙特卡洛估值分布、FA话术解码/定价体操拆解 |
+| **07_macro_distress_restatement.py** | `macro_risk.py` + `distress_valuation.py` + `financial_restatement.py` | `ImpliedERPCalculator`, `SovereignCRPAdjuster`, `MacroRiskEngine`, `DistressDualTrackValuer`, `IntangibleCapitalizer`, `SOVEREIGN_CDS_REFERENCE`, `R_AND_D_AMORTIZATION_YEARS` | 市场隐含ERP、国家风险溢价、MAC触发、破产双轨估值、R&D资本化/SBC调整 |
+| **08_damodaran_stack_demo.py** | `damodaran_stack.py` + `main.py` (v4.0 demo) | `ThreeLayerValuationStack`, `ThreeLayerValuationResult` + 8 个完整 demo 函数 | 三层堆栈聚合（地板/期权/天花板）、IC Memo 自动生成、完整调用示例 |
+| **09_README.md** | 本文件 | — | v3.0 + v4.0 全模块架构说明 |
+| **10_gemini_gems_guide.md** | 系统指令 + 部署指引 | — | Gem 系统指令 + 完整部署步骤 + 10 个使用场景 |
+
+---
+
+## 模块架构总览
+
+```
+gems/ (Gemini Gems 知识库，v4.0)
+│
+├── 01_stages_metrics.py     ← v3.0 核心：阶段模型 + 财务指标
+├── 02_exit_lp_gp.py         ← v3.0 核心：退出 + LP/GP + 哲学
+├── 03_simulation_curves_cashflow.py  ← v3.0 核心：概率 + 曲线 + J曲线
+├── 04_post_deal_dd.py        ← v3.0 新增：投后 + 交易结构 + 尽调
+│
+├── 05_narrative_dcf.py       ← v4.0 Layer 1：叙事DCF + 周期常态化
+├── 06_probabilistic_pricing.py  ← v4.0 Layer 2+3辅助：期权 + 定价拆解
+├── 07_macro_distress_restatement.py  ← v4.0 工具：宏观 + 困境 + 财务重述
+├── 08_damodaran_stack_demo.py  ← v4.0 聚合器：三层堆栈 + IC Memo + Demo
+│
+├── 09_README.md              ← 本文件：架构总览
+└── 10_gemini_gems_guide.md   ← 系统指令 + 部署指引 + 使用场景
+```
+
+---
+
+## v3.0 模块（11 个原始文件 → 4 个 Gem 文件）
+
+| 原始文件 | 整合到 | 核心功能 |
+|---------|--------|---------|
+| `stages.py` | 01 | 天使50-50-1、VC 100-10-10、PE三年三倍/四年四倍、北交所安全垫 |
+| `metrics.py` | 01 | IRR（Newton-Raphson多期）、DPI/TVPI转化率、戴维斯双杀、可比公司锚 |
+| `exit.py` | 02 | 三条抛物线退出时机、退出决策委员会、流动性折价模型 |
+| `lp_evaluation.py` | 02 | GP六大核心指标评分卡、三不三要、LP行为纠偏 |
+| `philosophy.py` | 02 | 价值投机一致性检验、政治经济视角、P/Strategic硬科技战略 |
+| `simulation.py` | 03 | 蒙特卡洛引擎（LognormalParam/NormalParam/PoissonParam） |
+| `curves.py` | 03 | Logistic/Gompertz曲线、资本周期、退出信号自动检测 |
+| `fund_cashflow.py` | 03 | J曲线、基金现金流时序、GP Carry 计算 |
+| `post_investment.py` | 04 | GP投后四重境界（40分制）、拐点追投决策 |
+| `deal_structure.py` | 04 | 老股转让红旗、反稀释条款触发、回购可行性 |
+| `due_diligence.py` | 04 | 杜邦ROE三因子、LTV/CAC/留存/NPS/NDR伪增长检测 |
+
+---
+
+## v4.0 达莫达兰估值工具箱（8 个新文件 → 4 个 Gem 文件）
+
+> 对应 Aswath Damodaran 估值工具七件套，一级市场融合实现
+
+| 原始文件 | 整合到 | 达莫达兰工具 | 核心公式/方法 |
+|---------|--------|------------|-------------|
+| `narrative_dcf.py` | 05 | 工具一：叙事→数字 SOTP-DCF | TAM×市占率→FCF→Gordon Growth终值；SOTP分板块折现 |
+| `cyclical_normalization.py` | 05 | 工具七：周期常态化 | 历史7年修剪均值；大宗商品价格OLS回归 |
+| `probabilistic_valuation.py` | 06 | 工具二：扩张期权+概率分布 | Black-Scholes Call（stdlib math实现）；蒙特卡洛10000次DCF |
+| `pricing_deconstructor.py` | 06 | 工具三：定价体操识别 | 跨期乘数检测；樱桃采摘σ/μ>0.5；乘数压缩TTM>30x vs宣称<5x |
+| `macro_risk.py` | 07 | 工具四：动态ERP+CRP | GGM反推隐含ERP；Damodaran CRP=(CDS差/10000)×股债波动率比 |
+| `distress_valuation.py` | 07 | 工具五：双轨破产估值 | Hull公式P_default；Altman Z-Score；期望值=P(存活)×DCF+P(破产)×清算 |
+| `financial_restatement.py` | 07 | 工具六：财务外科手术 | R&D资本化（逐年未摊销分）；CAC资本化；SBC调整；ROIC重述 |
+| `damodaran_stack.py` | 08 | 三层堆栈聚合器 | safety_margin=(天花板-地板)/进场价-1；>40%→INVEST；20-40%→NEGOTIATE；<20%→PASS |
+
+---
+
+## 达莫达兰三层估值堆栈框架
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    三层估值堆栈（IC Memo决策框架）                    │
+├─────────────────────────────────────────────────────────────────────┤
+│  Layer 3: 退出天花板（市场定价上限）                                  │
+│  ← 可比公司乘数 × 宏观调整系数⁻¹                                     │
+│  ← 文件: 06_probabilistic_pricing.py (PricingGymnasticsDetector)   │
+│                                                                      │
+│  ▲ 安全边际带宽 = (天花板-地板)/进场价 - 1                            │
+│  ▲ > 40% → INVEST | 20-40% → NEGOTIATE_TERMS | < 20% → PASS       │
+│                                                                      │
+│  Layer 2: 期权溢价（想象空间量化）                                    │
+│  ← Black-Scholes Call 扩张期权                                       │
+│  ← 文件: 06_probabilistic_pricing.py (ExpansionOptionValuer)       │
+│                                                                      │
+│  Layer 1: 内在价值地板（第一性原理DCF）                               │
+│  ← 叙事驱动 SOTP-DCF × 存活概率 / 宏观调整系数                       │
+│  ← 文件: 05_narrative_dcf.py (NarrativeDCFValuer)                  │
+│  ← 辅助: 07 (ImpliedERPCalculator, CyclicalNormalizer)             │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 快速开始 | Quick Start
 
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 运行完整演示
-python main.py demo
-
-# 单独运行各模块
-python main.py angel       # 天使轮投资评估
-python main.py vc          # VC成长期评估
-python main.py pe          # PE中后期评估
-python main.py bse         # 北交所投资评估
-python main.py irr         # IRR计算
-python main.py dpi         # DPI/TVPI分析
-python main.py valuation   # 戴维斯双杀检测
-python main.py exit        # 退出时机分析
-python main.py committee   # 退出决策委员会
-python main.py gp          # GP评分卡
-python main.py allocation  # LP资产配置建议
-python main.py philosophy  # 投资哲学检验
-
-# 新增命令 (v3.0)
-python main.py hardtech       # 硬科技战略评估 (P/Strategic)
-python main.py postinvest     # GP投后管理境界评估
-python main.py doubledown     # 拐点追投决策模型
-python main.py dealstructure  # 交易结构与底线防守
-python main.py duediligence   # 基本面尽调（杜邦+伪增长检测）
-python main.py lpbehavior     # LP行为学纠偏
-
-# 运行测试
-python -m pytest tests/ -v
-```
-
----
-
-## 模型框架 | Model Architecture
-
-```
-src/investment_model/
-├── stages.py           # 投资阶段量化模型 (Angel / VC / PE / BSE)
-├── metrics.py          # 财务指标计算器 (IRR / DPI-TVPI / 估值分析)
-├── exit.py             # 退出分析系统 (时机分析 / 决策委员会)
-├── lp_evaluation.py    # LP评估框架 (GP评分卡 / 资产配置 / LP行为纠偏)
-├── philosophy.py       # 投资哲学检验器 (含P/Strategic硬科技战略评估)
-├── simulation.py       # 蒙特卡洛模拟引擎
-├── curves.py           # 数学增长曲线与退出信号
-├── fund_cashflow.py    # 基金现金流模型
-├── post_investment.py  # 🆕 投后管理与拐点追投模块
-├── deal_structure.py   # 🆕 交易结构与底线防守模块
-└── due_diligence.py    # 🆕 基本面尽调定量交叉验证模块
-```
-
----
-
-## 五大升级维度 | Five New Dimensions (v3.0)
-
-### 一、P/Strategic 硬科技战略评估
-
-升级 `philosophy.py` 中的 `InvestmentPhilosophyChecker`，新增 `HardTechStrategyEvaluator`：
-
-- **技术落地路径分类**：`core_plugin_replacement`（高容错）/ `system_infrastructure_rebuild`（极高风险）/ `incremental_improvement`（中等）
-- **强制PMF评估**：卡脖子技术具备"国资兜底"属性，估值不应单纯使用财务PE/PS
-- **战略估值修正系数**（`strategic_valuation_multiplier`，1.0-3.0x）：可被其他估值模块引用
-- **NASA TRL技术成熟度**（1-9级）量化技术风险
-
-### 二、投后管理与拐点追投（`post_investment.py`）
-
-- **GP投后四重境界**（总分40分）：统计统筹→3R服务→战略赋能→退出导向型投后
-- **拐点信号强度计算**（0-100分）：技术里程碑(30)+标杆客户(25)+营收拐点(20)+竞争壁垒(15)+跟投质量(10)
-- **决策规则**：信号≥70且估值增幅<5倍→强烈追投；信号≥50→谨慎追投；信号<50→不追投
-
-### 三、交易结构与底线防守（`deal_structure.py`）
-
-- **老股红旗检测**：折价≥60%自动触发警报，出售>20%触发动机审查
-- **反稀释条款触发**：区分Full Ratchet和加权平均，评估估值锚影响
-- **回购可行性评估**：对赌指标合理性 + 创始人资产覆盖率 + 连带责任检查
-
-### 四、基本面尽调（`due_diligence.py`）
-
-- **杜邦分析**：ROE三因子（净利润率×资产周转率×权益乘数），自动判断高利润/高周转/高杠杆模式
-- **增长质量验证**：LTV/CAC<3x→警告；月留存<30%→伪增长；NPS<0→护城河缺失；补贴>30%→虚假增长；SaaS NDR<100%→客户流失
-
-### 五、LP行为学纠偏（`lp_evaluation.py`）
-
-- **宏大叙事陷阱**：被院士/万亿赛道吸引但无具体数据→红旗
-- **FOMO跟风检测**：因知名机构投了才跟投且无独立分析→红旗
-- **期望值冷酷计算**：EV = 胜率×回报倍数 + 败率×亏损倍数，EV<1.0→负期望值警告
-- **灵魂拷问清单**：个性化追问LP决策路径的核心盲点
-
----
-
-## 使用示例 | Usage Example
-
 ```python
+# Python 原版（完整精度）
 from src.investment_model import (
-    HardTechStrategyEvaluator, TECH_PATH_CORE_PLUGIN,
-    GPPostInvestmentEvaluator, DoubleDownDecisionModel,
-    AntiDilutionChecker, DuPontAnalyzer, LPBehaviorChecker,
+    # v3.0
+    AngelModel, VCModel, PEModel, BSEModel,
+    IRRCalculator, DPITVPICalculator, ValuationAnalyzer,
+    ExitAnalyzer, GPScorecard, LPBehaviorChecker,
+    HardTechStrategyEvaluator,
+    # v4.0
+    NarrativeDCFValuer, BusinessSegment,
+    ExpansionOptionValuer, ValuationDistribution,
+    PricingGymnasticsDetector, Comp,
+    ImpliedERPCalculator, SovereignCRPAdjuster, MacroRiskEngine,
+    DistressDualTrackValuer, IntangibleCapitalizer, CyclicalNormalizer,
+    ThreeLayerValuationStack,
 )
 
-# 硬科技战略评估
-evaluator = HardTechStrategyEvaluator()
-result = evaluator.evaluate(
-    tech_path_type=TECH_PATH_CORE_PLUGIN,
-    is_chokepoint_tech=True,
-    has_gov_procurement=True,
-    tech_readiness_level=7,
-)
-print(result.strategic_valuation_multiplier)  # 2.17x
+# 完整三层堆栈 demo
+python main.py stack    # 输出 IC Memo
+python main.py demo     # 运行全部模块演示
 
-# GP投后境界评估
-post_evaluator = GPPostInvestmentEvaluator()
-post_result = post_evaluator.evaluate(
-    has_financial_monitoring=True,
-    has_3r_services=True,
-    has_strategic_empowerment=True,
-    has_exit_oriented_management=True,
-    portfolio_company_survival_rate=0.70,
-    avg_time_to_next_round_months=15.0,
-)
-print(post_result.level, post_result.score)  # 4, 40
-
-# 杜邦分析
-dupont = DuPontAnalyzer()
-dup_result = dupont.analyze(
-    net_profit_rmb=3.0, revenue_rmb=15.0,
-    total_assets_rmb=20.0, total_equity_rmb=15.0,
-)
-print(dup_result.roe, dup_result.business_model)  # 0.2, high_margin
-
-# LP行为纠偏
-checker = LPBehaviorChecker()
-lp_result = checker.check(
-    attracted_by_narrative=True, has_concrete_evidence=False,
-    following_famous_fund=True, has_independent_analysis=False,
-    estimated_win_probability_pct=30.0,
-    expected_return_multiple=3.0, expected_loss_multiple=0.1,
-)
-print(lp_result.narrative_trap_detected, lp_result.expected_value)  # True, 0.97
+# 测试
+python -m pytest tests/ -v   # 329 个测试用例
 ```
 
 ---
 
-## 测试覆盖 | Test Coverage
+## 测试覆盖 | Test Coverage（v4.0 共 329 个测试）
 
 ```
 tests/
-├── test_stages.py          # 22 tests — 投资阶段模型
-├── test_metrics.py         # 18 tests — 财务指标计算器
-├── test_exit.py            # 23 tests — 退出分析模型
-├── test_lp_evaluation.py   # 18 tests — LP/GP评估框架
-├── test_philosophy.py      # 26 tests — 投资哲学检验（含硬科技战略）
-├── test_simulation.py      # 20 tests — 蒙特卡洛模拟
-├── test_curves.py          # 31 tests — 数学增长曲线
-├── test_post_investment.py # 🆕 22 tests — 投后管理与拐点追投
-├── test_deal_structure.py  # 🆕 20 tests — 交易结构与底线防守
-├── test_due_diligence.py   # 🆕 22 tests — 基本面尽调
-└── test_lp_behavior.py     # 🆕 15 tests — LP行为学纠偏
+├── test_stages.py                  # 22 tests — 投资阶段模型
+├── test_metrics.py                 # 18 tests — 财务指标计算器
+├── test_exit.py                    # 23 tests — 退出分析模型
+├── test_lp_evaluation.py           # 18 tests — LP/GP评估框架
+├── test_philosophy.py              # 26 tests — 投资哲学（含P/Strategic）
+├── test_simulation.py              # 20 tests — 蒙特卡洛模拟
+├── test_curves.py                  # 31 tests — 数学增长曲线
+├── test_post_investment.py         # 22 tests — 投后管理与拐点追投
+├── test_deal_structure.py          # 20 tests — 交易结构与底线防守
+├── test_due_diligence.py           # 22 tests — 基本面尽调
+├── test_lp_behavior.py             # 15 tests — LP行为学纠偏
+├── test_damodaran_toolkit.py       # 92 tests — 达莫达兰v4.0工具箱
+└── test_fund_cashflow.py           # (part of simulation tests)
 ```
 
-运行 `python -m pytest tests/ -v` 可验证全部 268 个测试用例。
+---
+
+## 版本历史
+
+| 版本 | 发布日期 | 新增内容 |
+|------|---------|---------|
+| **v4.0** | 2025-Q1 | 达莫达兰七件套（叙事DCF、扩张期权、定价拆解、宏观ERP、双轨估值、财务重述、周期常态化）+ 三层堆栈聚合器 |
+| **v3.0** | 2024-Q4 | P/Strategic硬科技战略、投后管理境界、交易结构防守、基本面尽调、LP行为纠偏 |
+| **v2.0** | 2024-Q3 | 蒙特卡洛引擎、数学增长曲线、J曲线基金现金流 |
+| **v1.0** | 2024-Q2 | 四阶段模型、IRR/DPI/TVPI、退出分析、GP评分卡 |
 
 ---
 
-*本模型仅供研究与学习参考，不构成任何投资建议。*
----
-
-## Gemini Gems 部署说明
-
-### 为什么有 gems/ 目录？
-
-Google Gemini Gems 功能限制每个 Gem 最多上传 **10个参考文件**。原 `src/investment_model/` 目录下共有 12 个 Python 文件，加上根目录的 `main.py` 和 `README.md`，总计 14 个文件，超出上传限制。
-
-为此，我们在根目录创建 `gems/` 目录，将所有源代码和文档**按功能域合并**为正好 10 个文件，专门用于上传至 Gemini Gems 知识库。
-
-### 文件对照表（整合方案）
-
-| 整合后文件 | 合并来源 | 说明 |
-|---|---|---|
-| `gems/01_stages.py` | `stages.py` | 投资阶段模型（Angel/VC/PE/BSE） |
-| `gems/02_metrics.py` | `metrics.py` | 财务指标计算器（IRR/DPI-TVPI/估值） |
-| `gems/03_exit.py` | `exit.py` | 退出分析系统 |
-| `gems/04_lp_gp_evaluation.py` | `lp_evaluation.py` + `philosophy.py` | LP/GP评估 + 投资哲学 |
-| `gems/05_simulation_curves.py` | `simulation.py` + `curves.py` | 蒙特卡洛 + 数学曲线 |
-| `gems/06_fund_cashflow.py` | `fund_cashflow.py` | J曲线/基金现金流 |
-| `gems/07_post_invest_deal.py` | `post_investment.py` + `deal_structure.py` + `due_diligence.py` | 投后管理 + 交易结构 + 尽调 |
-| `gems/08_main_demo.py` | `main.py` | CLI演示入口（完整使用示例） |
-| `gems/09_README.md` | `README.md` | 项目文档（即本文件） |
-| `gems/10_gemini_gems_guide.md` | 新建 | Gemini Gems 完整部署指引 |
-
-### 上传步骤简述
-
-1. 打开 [https://gemini.google.com/](https://gemini.google.com/) 并登录
-2. 左侧菜单 → **Gem 管理器** → **新建 Gem**
-3. 设置 Gem 名称（建议：`一级市场投资决策分析师`）
-4. 将 `gems/10_gemini_gems_guide.md` 中提供的**系统指令模板**粘贴至指令框
-5. 依次上传 `gems/01_stages.py` 至 `gems/09_README.md` 共 9 个文件作为知识文件
-6. 点击保存，即可开始使用
-
-> 详细部署步骤和系统指令模板请参阅 `gems/10_gemini_gems_guide.md`
+*本知识库仅供研究与学习参考，不构成任何投资建议。*
+*Gemini Gems 部署详情请参阅 `10_gemini_gems_guide.md`。*
