@@ -259,11 +259,12 @@ class CyclicalNormalizer:
         百分位: percentile = (当前价格 < 历史价格的比例) × 100
         """
         if len(margins) != len(commodity_prices) or len(margins) < 2:
+            default_margin = sum(margins) / len(margins) if len(margins) > 0 else 0.0
             return RegressionResult(
                 slope=0.0,
-                intercept=sum(margins) / len(margins) if margins else 0.0,
+                intercept=default_margin,
                 r_squared=0.0,
-                at_current_commodity_price=sum(margins) / len(margins) if margins else 0.0,
+                at_current_commodity_price=default_margin,
                 commodity_price_percentile=50.0,
                 summary="数据不足，无法执行OLS回归（需要至少2个配对数据点且长度相同）。",
             )

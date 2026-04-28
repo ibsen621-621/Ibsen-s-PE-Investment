@@ -197,7 +197,7 @@ class PricingGymnasticsDetector:
 
         # --- 2. 检测跨期乘数混搭 ---
         comp_reference_years = {c.reference_year for c in comp_pool}
-        target_uses_forward = forward_year in {forward_year} and forward_year != "TTM"
+        target_uses_forward = bool(forward_year) and forward_year.upper() != "TTM"
         comps_use_ttm = "TTM" in comp_reference_years
         cross_period_mismatch = target_uses_forward and comps_use_ttm and len(comp_pool) > 0
 

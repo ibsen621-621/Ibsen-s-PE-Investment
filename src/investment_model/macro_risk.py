@@ -278,7 +278,7 @@ class SovereignCRPAdjuster:
 
         recommendations.append(
             f"将CRP={crp:.2%} 叠加至基础ERP，得到跨境投资的完整折现率调整量。"
-            "例如：若基础ERP=5%，叠加CRP后折现率应额外增加 {crp:.2%}。"
+            f"例如：若基础ERP=5%，叠加CRP后折现率应额外增加 {crp:.2%}。"
         )
 
         summary = (

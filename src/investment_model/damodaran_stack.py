@@ -294,7 +294,15 @@ class ThreeLayerValuationStack:
     ) -> str:
         """生成完整IC Memo（Markdown格式）。"""
 
-        rec_emoji = {"INVEST": "✅", "NEGOTIATE_TERMS": "⚠️", "PASS": "❌"}.get(recommendation, "")
+        rec_action_map = {
+            "INVEST": "支持进场",
+            "NEGOTIATE_TERMS": "建议谈判条款后进场",
+            "PASS": "不支持进场，建议放弃",
+        }
+        rec_action_str = rec_action_map.get(recommendation, recommendation)
+
+        rec_emoji_map = {"INVEST": "✅", "NEGOTIATE_TERMS": "⚠️", "PASS": "❌"}
+        rec_emoji = rec_emoji_map.get(recommendation, "")
 
         # --- 第一章：投资摘要表格 ---
         summary_table = (
@@ -392,7 +400,7 @@ class ThreeLayerValuationStack:
 
 > **决策依据**: 安全边际带宽={safety_margin_pct:.1%}，
 > 三层堆栈（DCF地板={intrinsic_floor:.2f}亿 → 期权溢价={optionality_premium:.2f}亿 → 退出天花板={adjusted_ceiling:.2f}亿）
-> {'支持进场' if recommendation == 'INVEST' else '建议谈判条款后进场' if recommendation == 'NEGOTIATE_TERMS' else '不支持进场，建议放弃'}。
+> {rec_action_str}。
 
 ---
 
