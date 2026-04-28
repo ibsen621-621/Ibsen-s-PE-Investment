@@ -45,6 +45,17 @@ Damodaran Three-Layer Valuation Stack Aggregator
 
 # NOTE: NarrativeDCFResult is defined in gems/05_narrative_dcf.py
 # NOTE: PricingDeconstructionResult is defined in gems/06_probabilistic_pricing.py
+# NOTE: NarrativeDCFValuer, BusinessSegment are defined in gems/05_narrative_dcf.py
+# NOTE: ExpansionOptionValuer, ValuationDistribution, LognormalParam, NormalParam
+#       are defined in gems/06_probabilistic_pricing.py / gems/03_simulation_curves_cashflow.py
+# NOTE: PricingGymnasticsDetector, Comp are defined in gems/06_probabilistic_pricing.py
+# NOTE: CompsValuationAnchor, CompanyComp are defined in gems/01_stages_metrics.py (metrics.py)
+# NOTE: ImpliedERPCalculator, SovereignCRPAdjuster, MacroRiskEngine are in gems/07_macro_distress_restatement.py
+# NOTE: DistressDualTrackValuer, IntangibleCapitalizer, CyclicalNormalizer are in gems/07_macro_distress_restatement.py
+# NOTE: print_section, print_result are CLI helper functions (from main.py context)
+
+# Constant used in demo functions (from main.py)
+USD_TO_RMB_RATE: float = 7.2   # 汇率常量（仅用于 demo 展示，非估值计算）
 # ---------------------------------------------------------------------------
 # 三层估值结果
 # Three-Layer Valuation Result
