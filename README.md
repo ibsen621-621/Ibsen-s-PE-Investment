@@ -414,3 +414,32 @@ print(result.ic_memo_markdown)    # 完整Markdown IC Memo
 ---
 
 *本模型仅供研究与学习参考，不构成任何投资建议。*
+
+---
+
+## Gemini Gems v4.0 部署
+
+本仓库提供完整的 **Google Gemini Gems** 部署包（`gems/` 目录），将 v3.0 + v4.0 全部 19 个 Python 模块整合为 **10 个知识文件**，可直接部署为专属 AI 分析助手，无需 Python 环境，通过自然语言对话即可调用全部分析能力。
+
+### 快速部署
+
+1. 打开 [gemini.google.com](https://gemini.google.com/)（需要 Gemini Advanced 订阅）
+2. 进入「Gem 管理器」→「新建 Gem」
+3. 将 `gems/10_gemini_gems_guide.md` 中「角色定义」至「交互规范」部分粘贴为系统指令
+4. 按顺序上传 `gems/01_*.py` 至 `gems/09_README.md` 共 9 个知识文件
+5. 保存并测试
+
+### Gem 能力对比
+
+| 能力维度 | Python CLI | Gemini Gem v4.0 |
+|---------|-----------|----------------|
+| 叙事 SOTP-DCF 地板价 | ✅ 精确 | ✅ 近似推理 |
+| Black-Scholes 扩张期权 | ✅ 精确 | ✅ 近似推理 |
+| FA 话术解码 / 定价体操 | ✅ | ✅ |
+| 宏观 ERP + MAC 触发 | ✅ | ✅ |
+| 三层堆栈 + IC Memo | ✅ | ✅ |
+| 部署/分享方式 | 需配置环境 | 一键链接分享 |
+
+📖 **完整部署指引**：[`gems/10_gemini_gems_guide.md`](gems/10_gemini_gems_guide.md)
+
+📋 **知识库架构总览**：[`gems/09_README.md`](gems/09_README.md)
